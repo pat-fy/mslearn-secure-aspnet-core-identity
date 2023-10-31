@@ -1,7 +1,24 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using RazorPagesPizza.Areas.Identity.Data;
+using Microsoft.AspNetCore.Identity.UI.Services;
+using RazorPagesPizza.Services;
 
+var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("RazorPagesPizzaIdentityDbContextConnection");
+builder.Services.AddDbContext<RazorPagesPizzaIdentityDbContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDefaultIdentity<RazorPagesPizzaUser>(options => options.SignIn.RequireConfirmedAccount = false)
+                .AddEntityFrameworkStores<RazorPagesPizzaIdentityDbContext>();
+
+                
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options => 
+    options.Conventions.AuthorizePage("/AdminsOnly", "Admin"));
+builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.AddAuthorization(options =>
+    options.AddPolicy("Admin", policy => 
+        policy.RequireAuthenticatedUser()
+              .RequireClaim("IsAdmin", bool.TrueString)));
 
 var app = builder.Build();
 
@@ -17,7 +34,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
